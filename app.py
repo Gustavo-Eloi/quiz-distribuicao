@@ -22,12 +22,16 @@ from quiz.styles import brand_header, inject_css
 
 st.set_page_config(
     page_title="Quiz Distribuição",
-    page_icon="assets/bayer_logo.png",
+    page_icon="🎯",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-db.init_db()
+try:
+    db.init_db()
+except Exception as exc:
+    st.error(f"Erro ao iniciar o banco de dados: {exc}")
+
 inject_css()
 
 
