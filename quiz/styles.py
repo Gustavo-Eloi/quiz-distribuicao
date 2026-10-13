@@ -31,10 +31,8 @@ def _logo_data_uri(size: int = 56) -> str:
 
 BAYER_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
-
 html, body, [class*="css"] {
-  font-family: "IBM Plex Sans", sans-serif;
+  font-family: "Segoe UI", "Source Sans 3", sans-serif;
   color: #1A2B3C;
 }
 

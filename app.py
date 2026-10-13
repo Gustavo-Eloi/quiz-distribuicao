@@ -772,47 +772,48 @@ def render_historico_detail() -> None:
 
 
 def main() -> None:
-    view = current_view()
+    try:
+        view = current_view()
 
-    # Admin-gated views
-    admin_views = {
-        "admin",
-        "admin_bank",
-        "admin_create",
-        "admin_sessions",
-        "admin_live",
-        "historico",
-        "historico_detail",
-    }
+        # Admin-gated views
+        admin_views = {
+            "admin",
+            "admin_bank",
+            "admin_create",
+            "admin_sessions",
+            "admin_live",
+            "historico",
+            "historico_detail",
+        }
 
-    if view in admin_views:
-        if view != "admin_live" and not require_admin():
+        if view in admin_views:
+            if view != "admin_live" and not require_admin():
+                return
+            if view == "admin":
+                render_admin_dashboard()
+            elif view == "admin_bank":
+                render_question_bank()
+            elif view == "admin_create":
+                render_create_session()
+            elif view == "admin_sessions":
+                render_sessions_list()
+            elif view == "admin_live":
+                render_live_control()
+            elif view == "historico":
+                render_historico()
+            elif view == "historico_detail":
+                render_historico_detail()
             return
-        if view == "admin":
-            render_admin_dashboard()
-        elif view == "admin_bank":
-            render_question_bank()
-        elif view == "admin_create":
-            render_create_session()
-        elif view == "admin_sessions":
-            render_sessions_list()
-        elif view == "admin_live":
-            render_live_control()
-        elif view == "historico":
-            render_historico()
-        elif view == "historico_detail":
-            render_historico_detail()
-        return
 
-    if view == "play":
-        render_play()
-    elif view == "ranking":
-        render_ranking()
-    else:
-        render_home()
+        if view == "play":
+            render_play()
+        elif view == "ranking":
+            render_ranking()
+        else:
+            render_home()
+    except Exception as exc:
+        st.error("Falha ao carregar o Quiz Distribuição.")
+        st.exception(exc)
 
 
-if __name__ == "__main__":
-    main()
-else:
-    main()
+main()
