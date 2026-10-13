@@ -268,6 +268,16 @@ export async function fetchAnswersForQuestion(sessionQuestionId: string): Promis
   return (data || []) as Answer[]
 }
 
+/** RPC pode devolver {} / campos nulos em vez de null — só aceita resposta real. */
+function normalizeAnswer(data: unknown): Answer | null {
+  if (!data || typeof data !== 'object') return null
+  const row = data as Partial<Answer>
+  if (!row.id || !row.session_question_id || !row.selected_option) return null
+  const option = String(row.selected_option).trim().toUpperCase()
+  if (!['A', 'B', 'C', 'D'].includes(option)) return null
+  return { ...row, selected_option: option as OptionKey } as Answer
+}
+
 export async function fetchParticipantAnswer(
   participantId: string,
   clientToken: string,
@@ -279,7 +289,9 @@ export async function fetchParticipantAnswer(
     p_session_question_id: sessionQuestionId,
   })
   if (error) throw error
-  return (data as Answer | null) ?? null
+  const ans = normalizeAnswer(data)
+  if (ans && ans.session_question_id !== sessionQuestionId) return null
+  return ans
 }
 
 export async function joinSession(
@@ -311,7 +323,9 @@ export async function submitAnswer(
     p_response_time_ms: responseTimeMs,
   })
   if (error) throw error
-  return data as Answer
+  const ans = normalizeAnswer(data)
+  if (!ans) throw new Error('Resposta não confirmada pelo servidor')
+  return ans
 }
 
 export async function refreshSnapshots(sessionId: string, type: 'live' | 'final' = 'live') {

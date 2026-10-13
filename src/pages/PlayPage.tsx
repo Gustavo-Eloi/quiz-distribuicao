@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { TimerBar } from '../components/TimerBar'
 import { BrandHeader, Button, Card, Input, Label, PageShell, Spinner } from '../components/ui'
@@ -38,10 +38,15 @@ export function PlayPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [openedAtLocal, setOpenedAtLocal] = useState<string | null>(null)
+  const syncSeq = useRef(0)
 
   const current = useMemo(
     () => questions.find((q) => q.order_index === session?.current_question_order),
     [questions, session?.current_question_order],
+  )
+
+  const answeredCurrent = Boolean(
+    myAnswer && current && myAnswer.session_question_id === current.id && myAnswer.selected_option,
   )
 
   const myRank = useMemo(() => {
@@ -56,11 +61,14 @@ export function PlayPage() {
   }, [participants, participant])
 
   const syncSession = useCallback(async (sessionId: string) => {
+    const seq = ++syncSeq.current
     const [s, qs, ps] = await Promise.all([
       fetchSession(sessionId),
       fetchSessionQuestions(sessionId),
       fetchParticipants(sessionId),
     ])
+    if (seq !== syncSeq.current) return
+
     setSession(s)
     setQuestions(qs)
     setParticipants(ps)
@@ -68,6 +76,7 @@ export function PlayPage() {
     const stored = loadParticipant()
     if (stored && stored.sessionId === sessionId) {
       const me = await fetchOwnParticipant(sessionId, stored.clientToken)
+      if (seq !== syncSeq.current) return
       setParticipant(me)
       setJoined(Boolean(me))
     }
@@ -75,14 +84,21 @@ export function PlayPage() {
     const q = qs.find((x) => x.order_index === s?.current_question_order)
     if (stored && q) {
       const ans = await fetchParticipantAnswer(stored.id, stored.clientToken, q.id)
-      setMyAnswer(ans)
-      if (ans) setSelected(ans.selected_option)
-    } else {
+      if (seq !== syncSeq.current) return
+      const forCurrent = ans && ans.session_question_id === q.id ? ans : null
+      setMyAnswer((prev) => {
+        if (forCurrent) return forCurrent
+        // Não apaga resposta local já confirmada desta pergunta (race do realtime)
+        if (prev && prev.session_question_id === q.id && prev.selected_option) return prev
+        return null
+      })
+      setSelected((prev) => forCurrent?.selected_option ?? prev)
+    } else if (seq === syncSeq.current) {
       setMyAnswer(null)
       setSelected(null)
     }
 
-    if (s?.status === 'question_open' && q?.opened_at) {
+    if (s?.status === 'question_open' && q?.opened_at && seq === syncSeq.current) {
       setOpenedAtLocal(q.opened_at)
     }
   }, [])
@@ -157,12 +173,12 @@ export function PlayPage() {
     }
   }, [session?.id, syncSession])
 
-  // Reset local answer state when question changes
+  // Ao trocar a pergunta, limpa UI local; syncSession preenche se já houver resposta
   useEffect(() => {
     setSelected(null)
     setMyAnswer(null)
     setOpenedAtLocal(current?.opened_at || null)
-  }, [current?.id, session?.current_question_order])
+  }, [current?.id])
 
   const onJoin = async (e: FormEvent) => {
     e.preventDefault()
@@ -188,7 +204,7 @@ export function PlayPage() {
   const onSelect = async (key: OptionKey) => {
     if (!session || !participant || !current) return
     if (session.status !== 'question_open') return
-    if (myAnswer) return
+    if (answeredCurrent || submitting) return
     setSelected(key)
     setSubmitting(true)
     setError('')
@@ -197,10 +213,14 @@ export function PlayPage() {
       const responseTimeMs = Math.max(0, Date.now() - new Date(opened).getTime())
       const token = getClientToken()
       const ans = await submitAnswer(participant.id, token, current.id, key, responseTimeMs)
-      setMyAnswer(ans)
+      if (ans.session_question_id === current.id) {
+        setMyAnswer(ans)
+        setSelected(ans.selected_option)
+      }
       await syncSession(session.id)
     } catch (err) {
       setSelected(null)
+      setMyAnswer(null)
       setError(err instanceof Error ? err.message : 'Erro ao enviar resposta')
     } finally {
       setSubmitting(false)
@@ -256,9 +276,13 @@ export function PlayPage() {
     )
   }
 
-  const canAnswer = session.status === 'question_open' && !myAnswer
+  const canAnswer = session.status === 'question_open' && !answeredCurrent
   const showResult =
-    session.show_answer && myAnswer && current && ['revealing', 'ranking', 'finished'].includes(session.status)
+    session.show_answer &&
+    answeredCurrent &&
+    myAnswer &&
+    current &&
+    ['revealing', 'ranking', 'finished'].includes(session.status)
 
   return (
     <PageShell className="max-w-lg">
@@ -300,7 +324,7 @@ export function PlayPage() {
             <TimerBar
               openedAt={openedAtLocal || current.opened_at}
               timeSeconds={current.time_seconds}
-              active={session.status === 'question_open' && !myAnswer}
+              active={session.status === 'question_open' && !answeredCurrent}
             />
             <h2 className="text-lg font-bold leading-snug text-ink">{current.statement}</h2>
             <div className="grid gap-2">
@@ -310,10 +334,14 @@ export function PlayPage() {
                 ['C', current.option_c],
                 ['D', current.option_d],
               ] as [OptionKey, string][]).map(([key, text]) => {
-                const isMine = selected === key || myAnswer?.selected_option === key
+                const mineOption =
+                  answeredCurrent && myAnswer
+                    ? myAnswer.selected_option
+                    : selected
+                const isMine = mineOption === key
                 const isCorrect = session.show_answer && current.correct_option === key
                 const isWrong =
-                  session.show_answer && isMine && myAnswer && !myAnswer.is_correct
+                  session.show_answer && isMine && answeredCurrent && myAnswer && !myAnswer.is_correct
                 return (
                   <button
                     key={key}
@@ -337,7 +365,7 @@ export function PlayPage() {
               })}
             </div>
 
-            {myAnswer && session.status === 'question_open' && (
+            {answeredCurrent && session.status === 'question_open' && (
               <p className="text-center text-sm font-medium text-bayer-green-dark">
                 Resposta enviada! Aguarde o encerramento.
               </p>
@@ -347,7 +375,7 @@ export function PlayPage() {
                 Respostas encerradas. Aguarde o gabarito…
               </p>
             )}
-            {showResult && (
+            {showResult && myAnswer && (
               <div
                 className={`rounded-xl px-4 py-3 text-sm ${
                   myAnswer.is_correct ? 'bg-bayer-green/15 text-bayer-green-dark' : 'bg-red-50 text-red-700'
