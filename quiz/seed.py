@@ -259,6 +259,31 @@ SEED_QUESTIONS = [
         "option_d": "Esperar o fechamento do mês para analisar tudo de uma vez",
         "correct_option": "B",
     },
+    {
+        "theme": "Cultura de IA",
+        "difficulty": "facil",
+        "statement": (
+            "Com a IA evoluindo tão rápido, qual é a melhor forma de o time de "
+            "Distribuição se manter atualizado?"
+        ),
+        "explanation": (
+            "A evolução em IA exige aprendizado contínuo: capacitação estruturada, "
+            "troca de experiências nos AI Talks e experimentação prática com casos "
+            "reais da área. A apresentação já posiciona treinamentos, AI Talks "
+            "quinzenais, troca de práticas e IA no dia a dia como pilares dessa cultura."
+        ),
+        "time_seconds": 30,
+        "points_multiplier": 1.0,
+        "tags": "cultura,capacitacao,ai-talks,unico-skills",
+        "option_a": "Esperar uma ferramenta se tornar obrigatória para começar a aprender",
+        "option_b": (
+            "Fazer cursos no Unico Skills, participar dos AI Talks e testar IA "
+            "na prática em situações do dia a dia"
+        ),
+        "option_c": "Usar somente ferramentas que já conhece, sem explorar novidades",
+        "option_d": "Deixar o tema de IA apenas para o time de tecnologia",
+        "correct_option": "B",
+    },
 ]
 
 DIFFICULTY_LABEL = {

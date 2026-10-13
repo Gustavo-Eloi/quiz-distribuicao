@@ -57,25 +57,58 @@ def current_view() -> str:
     return st.query_params.get("view", "home")
 
 
+def lan_base_url(port: int = 8501) -> str:
+    """IP da rede local (Wi‑Fi) para QR / celular — nunca localhost."""
+    import socket
+
+    # Preferência: interface usada para sair na rede
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        if ip and not ip.startswith("127."):
+            return f"http://{ip}:{port}"
+    except Exception:
+        pass
+
+    try:
+        for info in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET):
+            ip = info[4][0]
+            if ip.startswith("192.168.") or ip.startswith("10."):
+                return f"http://{ip}:{port}"
+    except Exception:
+        pass
+    return f"http://127.0.0.1:{port}"
+
+
 def public_base_url() -> str:
-    """Melhor esforço para montar link compartilhável."""
+    """Link para celular: evita localhost no QR Code."""
     try:
         headers = getattr(st, "context", None)
         if headers is not None:
+            host = (st.context.headers.get("host", "") or "").lower()
             origin = st.context.headers.get("origin", "") or ""
+            # Se o apresentador abriu por localhost, o QR precisa do IP da rede
+            if host.startswith("localhost") or host.startswith("127.0.0.1"):
+                return lan_base_url()
             if origin:
-                return origin
-            host = st.context.headers.get("host", "")
+                o = origin.lower()
+                if "localhost" in o or "127.0.0.1" in o:
+                    return lan_base_url()
+                return origin.rstrip("/")
             if host:
-                proto = st.context.headers.get("x-forwarded-proto", "https")
+                proto = st.context.headers.get("x-forwarded-proto", "http")
+                if proto == "https" and ("192.168." in host or host.startswith("10.")):
+                    proto = "http"
                 return f"{proto}://{host}"
     except Exception:
         pass
-    return ""
+    return lan_base_url()
 
 
 def build_play_link(session_id: str | None = None) -> str:
-    base = public_base_url() or "http://localhost:8502"
+    base = public_base_url().rstrip("/")
     params = {"view": "play"}
     if session_id:
         params["session"] = session_id
@@ -125,6 +158,10 @@ def render_join_qr(session: dict | None, *, large: bool = True, key_suffix: str 
                     unsafe_allow_html=True,
                 )
         st.caption(link)
+        st.info(
+            "No celular: use o **mesmo Wi‑Fi** do notebook. "
+            "Se o QR falhar, digite o link acima no navegador."
+        )
         if st.button("Atualizar QR", key=f"qr_refresh_{key_suffix}"):
             st.rerun()
 

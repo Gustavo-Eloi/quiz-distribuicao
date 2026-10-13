@@ -1,55 +1,64 @@
 # Quiz Distribuição
 
-Quiz ao vivo para a área de Distribuição da Bayer — ranking por acerto e velocidade, com publicação no **Streamlit Community Cloud** para acesso pelo celular (QR Code).
+Quiz ao vivo para ~60 pessoas (celular + QR Code).
 
-## Rodar localmente
+## Plano B — dia do evento (recomendado)
 
-```bash
-pip install -r requirements.txt
+Sua rede bloqueia túneis (Cloudflare/ngrok). Por isso o evento roda assim:
+
+**Notebook liga o app → todos entram pelo Wi‑Fi da sala no mesmo IP.**
+
+### No dia (quinta)
+
+1. Conecte o notebook no **Wi‑Fi da sala** (o mesmo dos celulares).
+2. Abra o PowerShell e rode:
+
+```powershell
+cd C:\Users\GPQYG\distribution-ai-challenge
+powershell -ExecutionPolicy Bypass -File .\iniciar-evento.ps1
+```
+
+3. O script mostra um link tipo:
+
+```text
+http://192.168.x.x:8501
+```
+
+4. **Deixe a janela aberta.**
+5. No navegador do notebook: **Controlar o jogo** → senha `bayer2026`.
+6. Crie a sessão (5 perguntas) → lobby → mostre o **QR Code** da tela  
+   (ou projete o link `http://IP:8501`).
+7. Celulares: mesmo Wi‑Fi → escanear QR / abrir o link → **Entrar no jogo**.
+
+### Checklist
+
+- [ ] Notebook e celulares no **mesmo Wi‑Fi**
+- [ ] Script `iniciar-evento.ps1` rodando
+- [ ] Teste com 2 celulares antes de começar
+- [ ] Senha apresentador: `bayer2026`
+- [ ] Firewall do Windows permitindo a porta (o script tenta criar a regra)
+
+### Se o celular não abrir
+
+1. Confirme que está no mesmo Wi‑Fi (não use dados móveis).
+2. No notebook, rode o PowerShell **como Administrador** e execute o script de novo (firewall).
+3. Desative temporariamente VPN no notebook, se houver.
+
+## Só na sua máquina (teste)
+
+```powershell
+cd C:\Users\GPQYG\distribution-ai-challenge
 streamlit run app.py
 ```
 
-Abre em: http://localhost:8501
-
-- **Participante:** Entrar no jogo  
-- **Apresentador:** Controlar o jogo (senha nos Secrets)  
-- **Ranking / projetor:** Ver ranking  
-
-## Publicar (evento com ~60 celulares)
-
-### 1) GitHub
-
-1. Crie um repositório no GitHub (pode ser **público** — facilita o Streamlit Cloud).
-2. Envie este projeto (sem `.streamlit/secrets.toml` e sem `data/*.db`).
-
-### 2) Streamlit Cloud
-
-1. Acesse https://share.streamlit.io e entre com GitHub.
-2. **New app** → repositório → arquivo principal: `app.py`.
-3. Em **Advanced settings → Secrets**:
-
-```toml
-admin_password = "sua_senha_forte"
-```
-
-4. Deploy. Link típico: `https://SEU-APP.streamlit.app`
-
-### 3) No dia do evento
-
-1. Abra o app no notebook **antes** do horário (aquece a instância).
-2. **Controlar o jogo** → criar sessão com as 5 perguntas do evento → iniciar lobby.
-3. Projete o **QR Code** (ou o ranking em outra aba).
-4. Os ~60 participantes entram pelo celular no mesmo link → **Entrar no jogo**.
-5. Liberar pergunta → o tempo fecha sozinho → revelar gabarito → avançar.
-
-### Capacidade (~60 pessoas)
-
-- Um único app no Streamlit Cloud atende bem um evento pontual desse tamanho.
-- O banco é SQLite com WAL e espera em caso de pico de respostas simultâneas.
-- O disco do Cloud é temporário: ótimo para o evento; histórico pode resetar se o app dormir por muito tempo.
+http://localhost:8501
 
 ## Pontuação
 
 - Só acerto gera pontos  
-- Até **1000 pontos** na resposta correta mais rápida  
-- Decai com o tempo (e multiplicador, se houver)  
+- Até **1000 pts** na resposta correta mais rápida  
+- Tempo limite por pergunta (fecha sozinho)
+
+## Observação
+
+O histórico fica em `data/quiz.db` no notebook. Sem Streamlit Cloud = mais estável para o evento.
