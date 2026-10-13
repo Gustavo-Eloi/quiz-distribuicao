@@ -21,22 +21,10 @@ data/*
 __pycache__/
 *.pyc
 .venv/
+tools/*.exe
+tools/*.msi
 
-# Restos do protótipo React (não vão para o Streamlit Cloud)
-src/
-public/
-supabase/
-package.json
-package-lock.json
-vite.config.ts
-tsconfig.json
-tsconfig.app.json
-tsconfig.node.json
-vercel.json
-index.html
-.oxlintrc.json
-
-# Editor directories and files
+# Editor
 .vscode/*
 !.vscode/extensions.json
 .idea

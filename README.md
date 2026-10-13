@@ -1,64 +1,73 @@
 # Quiz Distribuição
 
-Quiz ao vivo para ~60 pessoas (celular + QR Code).
+Quiz ao vivo (React + Supabase + Netlify) para a área de Distribuição da Bayer.
 
-## Plano B — dia do evento (recomendado)
+## Publicar (Netlify + Supabase)
 
-Sua rede bloqueia túneis (Cloudflare/ngrok). Por isso o evento roda assim:
+### 1) Criar projeto no Supabase
 
-**Notebook liga o app → todos entram pelo Wi‑Fi da sala no mesmo IP.**
+1. Acesse https://supabase.com → **New project**
+2. Anote em **Settings → API**:
+   - Project URL
+   - anon public key
+3. Em **SQL Editor**, execute nesta ordem:
+   1. Conteúdo de `supabase/schema.sql`
+   2. Conteúdo de `supabase/seed.sql`
+4. Em **Authentication → Users**, crie um usuário (e-mail/senha) do **apresentador**
+5. Em **SQL Editor**, rode (troque o e-mail):
 
-### No dia (quinta)
-
-1. Conecte o notebook no **Wi‑Fi da sala** (o mesmo dos celulares).
-2. Abra o PowerShell e rode:
-
-```powershell
-cd C:\Users\GPQYG\distribution-ai-challenge
-powershell -ExecutionPolicy Bypass -File .\iniciar-evento.ps1
+```sql
+insert into public.profiles (id, email, role)
+select id, email, 'admin'
+from auth.users
+where email = 'SEU_EMAIL_ADMIN@empresa.com'
+on conflict (id) do update set role = 'admin';
 ```
 
-3. O script mostra um link tipo:
+6. Em **Database → Replication**, ative Realtime nas tabelas:
+   `quiz_sessions`, `participants`, `answers`, `session_questions`, `score_snapshots`
 
-```text
-http://192.168.x.x:8501
+### 2) Subir o front no Netlify
+
+**Opção recomendada — GitHub → Netlify**
+
+1. https://app.netlify.com → **Add new site** → **Import from Git**
+2. Repositório: `Gustavo-Eloi/quiz-distribuicao`
+3. Build command: `npm run build`
+4. Publish directory: `dist`
+5. Em **Site settings → Environment variables**, adicione:
+   - `VITE_SUPABASE_URL` = URL do Supabase
+   - `VITE_SUPABASE_ANON_KEY` = chave anon
+6. **Deploy**
+
+**Netlify Drop** (só funciona se você gerar o `dist` local com o `.env` já preenchido):
+
+```bash
+# .env local
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+
+npm install
+npm run build
+# Arraste a pasta dist em https://app.netlify.com/drop
 ```
 
-4. **Deixe a janela aberta.**
-5. No navegador do notebook: **Controlar o jogo** → senha `bayer2026`.
-6. Crie a sessão (5 perguntas) → lobby → mostre o **QR Code** da tela  
-   (ou projete o link `http://IP:8501`).
-7. Celulares: mesmo Wi‑Fi → escanear QR / abrir o link → **Entrar no jogo**.
+### 3) No dia do evento
 
-### Checklist
+1. Abra o link Netlify
+2. **Controlar o jogo** → login do apresentador
+3. Criar sessão com as perguntas → lobby → QR Code
+4. Celulares: mesmo link → **Entrar no jogo**
 
-- [ ] Notebook e celulares no **mesmo Wi‑Fi**
-- [ ] Script `iniciar-evento.ps1` rodando
-- [ ] Teste com 2 celulares antes de começar
-- [ ] Senha apresentador: `bayer2026`
-- [ ] Firewall do Windows permitindo a porta (o script tenta criar a regra)
+## Desenvolvimento local
 
-### Se o celular não abrir
-
-1. Confirme que está no mesmo Wi‑Fi (não use dados móveis).
-2. No notebook, rode o PowerShell **como Administrador** e execute o script de novo (firewall).
-3. Desative temporariamente VPN no notebook, se houver.
-
-## Só na sua máquina (teste)
-
-```powershell
-cd C:\Users\GPQYG\distribution-ai-challenge
-streamlit run app.py
+```bash
+cp .env.example .env
+# preencha as chaves
+npm install
+npm run dev
 ```
-
-http://localhost:8501
-
-## Pontuação
-
-- Só acerto gera pontos  
-- Até **1000 pts** na resposta correta mais rápida  
-- Tempo limite por pergunta (fecha sozinho)
 
 ## Observação
 
-O histórico fica em `data/quiz.db` no notebook. Sem Streamlit Cloud = mais estável para o evento.
+O app Streamlit (`app.py`) permanece no repo, mas a publicação oficial do evento é **Netlify + Supabase**.
