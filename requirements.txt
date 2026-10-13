@@ -1,4 +1,4 @@
-streamlit==1.39.0
+﻿streamlit==1.39.0
 pandas==2.2.3
-qrcode[pil]==8.0
+qrcode==8.0
 Pillow==10.4.0
