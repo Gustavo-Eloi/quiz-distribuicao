@@ -1,5 +1,6 @@
-"""Entry point alternativo para o Streamlit Cloud."""
+"""Entry point alternativo para o Streamlit Cloud.
 
-from app import main
+O módulo app.py já executa main() ao ser importado/rodado.
+"""
 
-main()
+import app  # noqa: F401
