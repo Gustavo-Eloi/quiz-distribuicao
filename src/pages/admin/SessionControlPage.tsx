@@ -23,6 +23,9 @@ import {
 import { supabase } from '../../lib/supabase'
 import { STATUS_LABEL, type Participant, type QuizSession, type SessionQuestion } from '../../lib/types'
 
+/** Tempo para o público ver o gabarito antes da próxima pergunta */
+const GABARITO_HOLD_MS = 8000
+
 export function SessionControlPage() {
   const { id } = useParams<{ id: string }>()
   const [session, setSession] = useState<QuizSession | null>(null)
@@ -33,6 +36,7 @@ export function SessionControlPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const autoRevealKey = useRef<string | null>(null)
+  const autoAdvanceKey = useRef<string | null>(null)
 
   const current = useMemo(
     () => questions.find((q) => q.order_index === session?.current_question_order),
@@ -119,6 +123,22 @@ export function SessionControlPage() {
 
     return () => window.clearTimeout(timer)
   }, [session?.id, session?.status, current?.id, current?.opened_at, current?.time_seconds])
+
+  // Após revelar o gabarito, avança sozinho (ou encerra na última)
+  useEffect(() => {
+    if (!session || !current) return
+    if (session.status !== 'revealing') return
+
+    const key = `${current.id}:advance`
+    if (autoAdvanceKey.current === key) return
+
+    const timer = window.setTimeout(() => {
+      autoAdvanceKey.current = key
+      void run(() => advanceQuestion(session.id))
+    }, GABARITO_HOLD_MS)
+
+    return () => window.clearTimeout(timer)
+  }, [session?.id, session?.status, current?.id])
 
   if (loading) {
     return (
@@ -269,9 +289,14 @@ export function SessionControlPage() {
                     active
                   />
                   <p className="mt-1 text-xs text-muted">
-                    Ao zerar, o gabarito é revelado automaticamente.
+                    Ao zerar: revela o gabarito e, em seguida, avança sozinho.
                   </p>
                 </div>
+              )}
+              {session.status === 'revealing' && (
+                <p className="mt-2 text-xs font-medium text-bayer-blue">
+                  Gabarito na tela — próxima pergunta em alguns segundos…
+                </p>
               )}
               <p className="mt-2 font-semibold text-ink">{current.statement}</p>
               <p className="mt-3 text-sm text-muted">
