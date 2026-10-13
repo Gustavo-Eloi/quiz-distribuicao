@@ -1,6 +1,6 @@
-"""Entry point alternativo para o Streamlit Cloud.
+"""Entrada oficial para Streamlit Community Cloud."""
 
-O módulo app.py já executa main() ao ser importado/rodado.
-"""
+import runpy
+from pathlib import Path
 
-import app  # noqa: F401
+runpy.run_path(str(Path(__file__).with_name("app.py")), run_name="__main__")
