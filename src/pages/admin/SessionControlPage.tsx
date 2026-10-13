@@ -1,12 +1,14 @@
 import { ArrowLeft, Users } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { QRPanel } from '../../components/QRPanel'
 import { RankingList, toRankRows } from '../../components/RankingList'
+import { TimerBar } from '../../components/TimerBar'
 import { Badge, Button, Card, PageShell, Spinner } from '../../components/ui'
 import {
   advanceQuestion,
   beginQuiz,
+  closeAndRevealAnswers,
   closeAnswers,
   fetchAnswerCount,
   fetchParticipants,
@@ -30,6 +32,7 @@ export function SessionControlPage() {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const autoRevealKey = useRef<string | null>(null)
 
   const current = useMemo(
     () => questions.find((q) => q.order_index === session?.current_question_order),
@@ -98,6 +101,25 @@ export function SessionControlPage() {
     }
   }
 
+  // Ao zerar o tempo da pergunta, encerra e revela o gabarito automaticamente
+  useEffect(() => {
+    if (!session || !current) return
+    if (session.status !== 'question_open' || !current.opened_at) return
+
+    const key = `${current.id}:${current.opened_at}`
+    if (autoRevealKey.current === key) return
+
+    const endsAt = new Date(current.opened_at).getTime() + current.time_seconds * 1000
+    const delay = Math.max(0, endsAt - Date.now())
+
+    const timer = window.setTimeout(() => {
+      autoRevealKey.current = key
+      void run(() => closeAndRevealAnswers(session.id))
+    }, delay)
+
+    return () => window.clearTimeout(timer)
+  }, [session?.id, session?.status, current?.id, current?.opened_at, current?.time_seconds])
+
   if (loading) {
     return (
       <PageShell>
@@ -158,15 +180,24 @@ export function SessionControlPage() {
                 </Button>
               )}
               {session.status === 'question_open' && (
-                <Button
-                  variant="warning"
-                  disabled={busy}
-                  onClick={() => void run(() => closeAnswers(session.id))}
-                >
-                  Encerrar respostas
-                </Button>
+                <>
+                  <Button
+                    variant="warning"
+                    disabled={busy}
+                    onClick={() => void run(() => closeAndRevealAnswers(session.id))}
+                  >
+                    Encerrar e revelar gabarito
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    disabled={busy}
+                    onClick={() => void run(() => closeAnswers(session.id))}
+                  >
+                    Só encerrar respostas
+                  </Button>
+                </>
               )}
-              {(session.status === 'question_closed' || session.status === 'question_open') && (
+              {session.status === 'question_closed' && (
                 <Button
                   disabled={busy}
                   onClick={() => void run(() => revealAnswer(session.id))}
@@ -228,7 +259,20 @@ export function SessionControlPage() {
                 {Number(current.points_multiplier) > 1
                   ? ` · multiplicador ${current.points_multiplier}x`
                   : ''}
+                {` · ${current.time_seconds}s`}
               </p>
+              {session.status === 'question_open' && (
+                <div className="mt-3">
+                  <TimerBar
+                    openedAt={current.opened_at}
+                    timeSeconds={current.time_seconds}
+                    active
+                  />
+                  <p className="mt-1 text-xs text-muted">
+                    Ao zerar, o gabarito é revelado automaticamente.
+                  </p>
+                </div>
+              )}
               <p className="mt-2 font-semibold text-ink">{current.statement}</p>
               <p className="mt-3 text-sm text-muted">
                 Respostas recebidas: <strong className="text-bayer-blue">{answerCount}</strong> /{' '}

@@ -26,7 +26,7 @@ create table if not exists public.question_bank (
   difficulty text not null check (difficulty in ('facil', 'medio', 'dificil')),
   statement text not null,
   explanation text not null default '',
-  time_seconds integer not null default 30 check (time_seconds between 5 and 300),
+  time_seconds integer not null default 20 check (time_seconds between 5 and 300),
   points_multiplier numeric(4,2) not null default 1.00 check (points_multiplier > 0),
   tags text[] not null default '{}',
   archived boolean not null default false,

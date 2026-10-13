@@ -407,6 +407,28 @@ export async function revealAnswer(sessionId: string) {
   return updateSessionStatus(sessionId, { status: 'revealing', show_answer: true })
 }
 
+/** Encerra respostas e revela o gabarito de uma vez (timer automático). */
+export async function closeAndRevealAnswers(sessionId: string) {
+  const session = await fetchSession(sessionId)
+  if (!session) throw new Error('Sessão não encontrada')
+  if (session.status !== 'question_open' && session.status !== 'question_closed') {
+    return session
+  }
+  const questions = await fetchSessionQuestions(sessionId)
+  const q = questions.find((x) => x.order_index === session.current_question_order)
+  if (q) {
+    await supabase
+      .from('session_questions')
+      .update({
+        closed_at: new Date().toISOString(),
+        answer_revealed: true,
+      })
+      .eq('id', q.id)
+  }
+  await refreshSnapshots(sessionId, 'live')
+  return updateSessionStatus(sessionId, { status: 'revealing', show_answer: true })
+}
+
 export async function showRanking(sessionId: string) {
   await refreshSnapshots(sessionId, 'live')
   return updateSessionStatus(sessionId, { status: 'ranking', show_ranking: true })

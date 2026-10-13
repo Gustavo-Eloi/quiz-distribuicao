@@ -32,8 +32,8 @@ export function SessionCreatePage() {
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
-    if (selected.length < 5 || selected.length > 15) {
-      setError('Selecione de 5 a 15 perguntas.')
+    if (selected.length < 1 || selected.length > 15) {
+      setError('Selecione de 1 a 15 perguntas.')
       return
     }
     setSaving(true)
@@ -55,7 +55,8 @@ export function SessionCreatePage() {
       </Link>
       <h1 className="mb-1 text-2xl font-bold text-bayer-blue">Criar sessão</h1>
       <p className="mb-6 text-sm text-muted">
-        Selecione de 5 a 15 perguntas. Uma cópia será versionada na sessão.
+        Selecione de 1 a 15 perguntas (as 7 oficiais duram 20s cada). Uma cópia será versionada na
+        sessão.
       </p>
 
       {loading ? (
@@ -71,7 +72,7 @@ export function SessionCreatePage() {
               onChange={(e) => setName(e.target.value)}
             />
             <p className="mt-2 text-sm text-muted">
-              Selecionadas: <strong>{selected.length}</strong> / 15 (mínimo 5)
+              Selecionadas: <strong>{selected.length}</strong> / 15
             </p>
           </Card>
 
@@ -115,7 +116,7 @@ export function SessionCreatePage() {
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <Button type="submit" disabled={saving || selected.length < 5}>
+          <Button type="submit" disabled={saving || selected.length < 1}>
             {saving ? 'Criando…' : 'Criar sessão'}
           </Button>
         </form>

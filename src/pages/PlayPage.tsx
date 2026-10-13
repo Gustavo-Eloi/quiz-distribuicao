@@ -324,7 +324,7 @@ export function PlayPage() {
             <TimerBar
               openedAt={openedAtLocal || current.opened_at}
               timeSeconds={current.time_seconds}
-              active={session.status === 'question_open' && !answeredCurrent}
+              active={session.status === 'question_open'}
             />
             <h2 className="text-lg font-bold leading-snug text-ink">{current.statement}</h2>
             <div className="grid gap-2">

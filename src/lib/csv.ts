@@ -87,7 +87,7 @@ export function parseQuestionsCsv(text: string): QuestionFormData[] {
       difficulty: ['facil', 'medio', 'dificil'].includes(difficulty) ? difficulty : 'medio',
       statement: cols[idx('statement')],
       explanation: idx('explanation') >= 0 ? cols[idx('explanation')] || '' : '',
-      time_seconds: Number(idx('time_seconds') >= 0 ? cols[idx('time_seconds')] || 30 : 30) || 30,
+      time_seconds: Number(idx('time_seconds') >= 0 ? cols[idx('time_seconds')] || 20 : 20) || 20,
       points_multiplier:
         Number(idx('points_multiplier') >= 0 ? cols[idx('points_multiplier')] || 1 : 1) || 1,
       tags: tagsRaw

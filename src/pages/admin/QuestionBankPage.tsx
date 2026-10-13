@@ -19,7 +19,7 @@ const emptyForm = (): QuestionFormData => ({
   difficulty: 'medio',
   statement: '',
   explanation: '',
-  time_seconds: 30,
+  time_seconds: 20,
   points_multiplier: 1,
   tags: [],
   options: { A: '', B: '', C: '', D: '' },
